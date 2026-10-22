@@ -6,7 +6,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Bell, Boxes, ChartNoAxesCombined, ChevronDown, CircleHelp, ClipboardList, Command, LayoutDashboard, Menu, Package, Search, Settings2, ShoppingCart, Truck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Bell, Boxes, ChartNoAxesCombined, ChevronDown, CircleHelp, ClipboardList, Command, LayoutDashboard, LogOut, Menu, Package, Search, Settings2, ShoppingCart, Truck } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 const navigation = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -18,9 +20,33 @@ const navigation = [
   { label: 'Laporan', href: '/reports', icon: ChartNoAxesCombined },
 ];
 
-export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
+export function AppShell({ children, userEmail }: Readonly<{ children: ReactNode; userEmail: string }>) {
+  const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const initials = userEmail.slice(0, 2).toUpperCase();
+
+  function handleLogout() {
+    setLogoutError(false);
+    setIsLoggingOut(true);
+    void (async () => {
+      try {
+        const { error } = await createClient().auth.signOut();
+        if (error) {
+          setLogoutError(true);
+          return;
+        }
+        router.replace('/login');
+        router.refresh();
+      } catch {
+        setLogoutError(true);
+      } finally {
+        setIsLoggingOut(false);
+      }
+    })();
+  }
   const side = (
     <aside className="sidebar">
       <Link href="/dashboard" className="brand-lockup" onClick={() => setMobileOpen(false)}>
@@ -39,7 +65,8 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
       <div className="sidebar-spacer" />
       <div className="sidebar-help"><span className="help-icon"><CircleHelp size={17} /></span><div><strong>Butuh bantuan?</strong><small>Lihat panduan Sirkana</small></div></div>
       <Link href="/settings" className={`nav-item settings-nav ${pathname === '/settings' ? 'active' : ''}`} onClick={() => setMobileOpen(false)}><Settings2 size={18} /><span>Pengaturan</span></Link>
-      <div className="sidebar-user"><span className="user-avatar">YA</span><span className="user-meta"><strong>Yudha A.</strong><small>Owner</small></span><button className="icon-button" type="button" aria-label="Menu pengguna"><ChevronDown size={16} /></button></div>
+      <div className="sidebar-user"><span className="user-avatar">{initials}</span><span className="user-meta"><strong>{userEmail}</strong><small>Akun terautentikasi</small></span><button className="icon-button" type="button" aria-label="Keluar" onClick={handleLogout} disabled={isLoggingOut}><LogOut size={16} /></button></div>
+      {logoutError && <p className="logout-error" role="alert">Gagal keluar. Periksa koneksi lalu coba lagi.</p>}
     </aside>
   );
 
@@ -51,7 +78,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
         <header className="topbar">
           <button className="icon-button mobile-menu-button" aria-label="Buka menu" onClick={() => setMobileOpen(true)} type="button"><Menu size={21} /></button>
           <div className="global-search"><Search size={17} /><input aria-label="Pencarian global" placeholder="Cari produk, transaksi, atau apa saja..." /><kbd>⌘ K</kbd></div>
-          <div className="topbar-actions"><button className="icon-button" type="button" aria-label="Notifikasi"><Bell size={18} /><span className="notification-dot" /></button><div className="top-user"><span className="user-avatar">YA</span><span className="top-user-meta"><strong>Yudha Awanugraha</strong><small>Owner</small></span></div><button className="icon-button top-user-menu" aria-label="Buka profil" type="button"><ChevronDown size={15} /></button></div>
+          <div className="topbar-actions"><button className="icon-button" type="button" aria-label="Notifikasi"><Bell size={18} /><span className="notification-dot" /></button><div className="top-user"><span className="user-avatar">{initials}</span><span className="top-user-meta"><strong>{userEmail}</strong><small>Akun terautentikasi</small></span></div><button className="icon-button top-user-menu" aria-label={isLoggingOut ? 'Sedang keluar' : 'Keluar'} type="button" onClick={handleLogout} disabled={isLoggingOut}><LogOut size={15} /></button></div>
         </header>
         <main className="main-content">{children}<footer className="page-footer"><span>© 2026 SIRKANA</span><span><Command size={13} /> Stok bergerak. Bisnis terkendali.</span><span>Pratinjau UI · Data contoh</span></footer></main>
       </div>

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration';
 import './globals.css';
+import './auth.css';
 
 export const metadata: Metadata = {
   title: {
